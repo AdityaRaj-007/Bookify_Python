@@ -6,12 +6,12 @@ from src.db.main import get_session
 from sqlmodel.ext.asyncio.session import AsyncSession
 from .utils import create_access_token,decode_access_token,verify_password
 from datetime import datetime, timedelta
-from .dependencies import RefreshTokenBearer,AccessTokenBearer
+from .dependencies import RefreshTokenBearer,AccessTokenBearer,get_current_user,RoleChecker
 from src.db.redis import add_token_to_blocklist
 
 auth_router = APIRouter()
-
 user_service = UserService()
+role_checker = RoleChecker(["admin","user"])
 
 REFRESH_TOKEN_EXPIRY = 2
 
@@ -44,7 +44,7 @@ async def login(user_data: UserLoginModel,session:AsyncSession = Depends(get_ses
         print(f"Is password valid? {password_valid}")
 
         if password_valid:
-            access_token = create_access_token(user_data={'email':user.email,'user_uid':str(user.uid)})
+            access_token = create_access_token(user_data={'email':user.email,'user_uid':str(user.uid),'role':user.role})
 
             refresh_token = create_access_token(
                 user_data={'email':user.email,'user_uid':str(user.uid)},
@@ -58,7 +58,8 @@ async def login(user_data: UserLoginModel,session:AsyncSession = Depends(get_ses
                 "refresh_token":refresh_token,
                 "user":{
                     "email": user.email,
-                    "uid":str(user.uid)
+                    "uid":str(user.uid),
+                    "role": user.role
                 }
             })
     
@@ -78,6 +79,11 @@ async def get_new_access_token(token_data:dict = Depends(RefreshTokenBearer())):
 
 
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="Invalid or exprired token!")
+
+
+@auth_router.get('/current_user')
+async def get_current_user(user = Depends(get_current_user),_:bool = Depends(role_checker)):
+    return user
 
 @auth_router.get('/logout')
 async def logout(token_data:dict = Depends(AccessTokenBearer())):

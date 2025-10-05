@@ -16,8 +16,7 @@ version = "v1"
 app = FastAPI(
     title="Bookify",
     description="A Rest API for a book review web service",
-    version=version,
-    lifespan=lifespan
+    version=version
 )
 
 app.include_router(book_router, prefix=f"/api/{version}/books", tags=['books'])

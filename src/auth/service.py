@@ -33,7 +33,8 @@ class UserService:
             email=data["email"],
             first_name=data["first_name"],
             last_name=data["last_name"],
-            password_hash=hashed_password
+            password_hash=hashed_password,
+            role="user"
         )
 
         session.add(user)
